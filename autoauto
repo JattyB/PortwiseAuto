@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [[ -f portscan.xml ]]
+then
+    python3 /mnt/d/Tools/Nmap-Scan-to-CSV-master/nmap_xml_parser.py -f portscan.xml -csv portscan.csv
+else
+    nmap -n -p- -iL IPs.txt -oA portscan -Pn
+    python3 /mnt/d/Tools/Nmap-Scan-to-CSV-master/nmap_xml_parser.py -f portscan.xml -csv portscan.csv
+fi
+
+mkdir PortWise-IP
+
+for i in {1..65535}
+        do
+                if grep ",$i," portscan.csv
+                then
+                        grep ",$i," portscan.csv | awk -F "," '{print $1}' | tee -a PortWise-Ip/Port$i.txt
+                fi
+        done
+
+if [[ -d PortWise-Ip ]]
+then
+        cd PortWise-Ip
+        for i in {1..65535}
+                do
+                        if [[ -f Port$i.txt ]]
+                        then
+                                mkdir Port$i
+                                nmap -sS -sC -sV -p$i -iL Port$i.txt -oA Port$i/default -Pn
+                                nmap -sS -sV -p$i -iL Port$i.txt -oA Port$i/vuln_scan --script=vuln -Pn
+                        fi
+                done
+else
+                echo "[!] No Directory Found"
+fi
+
+cd ..
+
+nmap -sV -iL IPs.txt --script=ssl* -oA sslnse -Pn
+
